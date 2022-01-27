@@ -6,6 +6,7 @@ from gym.utils import seeding
 from screeninfo import get_monitors
 import pybullet as p
 from keras.models import load_model
+import cv2
 
 from .util import Util
 from .human_creation import HumanCreation
@@ -41,7 +42,8 @@ class AssistiveEnv(gym.Env):
         self.human_creation = HumanCreation(self.id, np_random=self.np_random, cloth=('dressing' in task))
         self.human_limits_model = load_model(os.path.join(self.directory, 'realistic_arm_limits_model.h5'))
         #!! CHANGED FOR BEDDING MANIPULATION TASK!! GO BACK AND CHANGE LATER
-        self.action_robot_len = 4
+        # self.action_robot_len = 4
+        self.action_robot_len = 7
         self.action_human_len = len(human.controllable_joint_indices) if human is not None and human.controllable else 0
         self.action_space = spaces.Box(low=np.array([-1.0]*(self.action_robot_len+self.action_human_len), dtype=np.float32), high=np.array([1.0]*(self.action_robot_len+self.action_human_len), dtype=np.float32), dtype=np.float32)
         self.obs_robot_len = obs_robot_len
@@ -345,17 +347,22 @@ class AssistiveEnv(gym.Env):
     def update_targets(self):
         pass
 
-    def render(self, mode='human'):
+    def render(self, mode='human', width=None, height=None):
         if not self.gui:
             self.gui = True
             if self.id is not None:
                 self.disconnect()
-            try:
-                self.width = get_monitors()[0].width
-                self.height = get_monitors()[0].height
-            except Exception as e:
-                self.width = 1920
-                self.height = 1080
+            
+            if width is not None and height is not None:
+                self.width = width
+                self.height = height
+            else:
+                try:
+                    self.width = get_monitors()[0].width
+                    self.height = get_monitors()[0].height
+                except Exception as e:
+                    self.width = 1920
+                    self.height = 1080
             self.id = p.connect(p.GUI, options='--background_color_red=0.8 --background_color_green=0.9 --background_color_blue=1.0 --width=%d --height=%d' % (self.width, self.height))
             self.util = Util(self.id, self.np_random)
 
@@ -379,9 +386,29 @@ class AssistiveEnv(gym.Env):
 
     def get_camera_image_depth(self, light_pos=[0, -3, 1], shadow=False, ambient=0.8, diffuse=0.3, specular=0.1):
         assert self.view_matrix is not None, 'You must call env.setup_camera() or env.setup_camera_rpy() before getting a camera image'
-        w, h, img, depth, _ = p.getCameraImage(self.camera_width, self.camera_height, self.view_matrix, self.projection_matrix, lightDirection=light_pos, shadow=shadow, lightAmbientCoeff=ambient, lightDiffuseCoeff=diffuse, lightSpecularCoeff=specular, renderer=p.ER_BULLET_HARDWARE_OPENGL, physicsClientId=self.id)
+        w, h, img, depth, segmask = p.getCameraImage(self.camera_width, self.camera_height, 
+            self.view_matrix, self.projection_matrix, 
+            shadow=shadow, 
+            lightDirection=light_pos, lightAmbientCoeff=ambient, lightDiffuseCoeff=diffuse, lightSpecularCoeff=specular, 
+            renderer=p.ER_BULLET_HARDWARE_OPENGL, 
+            flags=p.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX,
+            physicsClientId=self.id)
         img = np.reshape(img, (h, w, 4))
         depth = np.reshape(depth, (h, w))
+
+        # zfar = 1000.
+        # znear = 0.01
+        # mydepth = depth.copy()
+        # mydepth = (zfar + znear - (2. * mydepth - 1.) * (zfar - znear))
+        # mydepth = (2. * znear * zfar) / mydepth
+        # segmask = np.uint8(segmask).reshape((h, w))
+        # print(type(segmask))
+        # print(len(segmask))
+        # # for x in segmask:
+        #     print(x)
+
+        # mydepth[segmask > 0] = 0
+        # cv2.imshow("mydepth", mydepth)
         return img, depth
 
     def create_box(self, half_extents=[1, 1, 1], mass=0.0, pos=[0, 0, 0], orientation=[0, 0, 0, 1], visual=True, collision=True, rgba=[0, 1, 1, 1], maximal_coordinates=False, return_collision_visual=False):

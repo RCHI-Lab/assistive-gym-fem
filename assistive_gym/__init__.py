@@ -101,3 +101,16 @@ register(
     entry_point='assistive_gym.envs:HumanSMPLXTestingEnv',
     max_episode_steps=200,
 )
+
+# Added by yufei
+register(
+    id='ClothTableObject-v1',
+    entry_point='assistive_gym.envs:ClothTableObjectsPR2Env',
+    max_episode_steps=200,
+)
+
+register(
+    id='SimpleTest-v1',
+    entry_point='assistive_gym.envs:SimpleTestEnv',
+    max_episode_steps=200,
+)

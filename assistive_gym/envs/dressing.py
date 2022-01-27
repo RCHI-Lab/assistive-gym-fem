@@ -26,9 +26,14 @@ class DressingEnv(AssistiveEnv):
         else:
             self.take_step(action, action_multiplier=0.003)
 
-        shoulder_pos = self.human.get_pos_orient(self.human.left_shoulder)[0]
-        elbow_pos = self.human.get_pos_orient(self.human.left_elbow)[0]
-        wrist_pos = self.human.get_pos_orient(self.human.left_wrist)[0]
+        # NOTE yufei: somehow left_should is no longer defined in human, so I remove it for now
+        # shoulder_pos = self.human.get_pos_orient(self.human.left_shoulder)[0]
+        # elbow_pos = self.human.get_pos_orient(self.human.left_elbow)[0]
+        # wrist_pos = self.human.get_pos_orient(self.human.left_wrist)[0]
+
+        shoulder_pos = np.zeros(3)
+        elbow_pos = np.zeros(3)
+        wrist_pos = np.zeros(3)
 
         # Get cloth data
         x, y, z, cx, cy, cz, fx, fy, fz = p.getSoftBodyData(self.cloth, physicsClientId=self.id)
@@ -82,9 +87,15 @@ class DressingEnv(AssistiveEnv):
         if self.robot.mobile:
             # Don't include joint angles for the wheels
             robot_joint_angles = robot_joint_angles[len(self.robot.wheel_joint_indices):]
-        shoulder_pos = self.human.get_pos_orient(self.human.left_shoulder)[0]
-        elbow_pos = self.human.get_pos_orient(self.human.left_elbow)[0]
-        wrist_pos = self.human.get_pos_orient(self.human.left_wrist)[0]
+        # NOTE yufei: somehow left_shoulder is no longer defined, so I will just remove it
+        # shoulder_pos = self.human.get_pos_orient(self.human.left_shoulder)[0]
+        # elbow_pos = self.human.get_pos_orient(self.human.left_elbow)[0]
+        # wrist_pos = self.human.get_pos_orient(self.human.left_wrist)[0]
+
+        shoulder_pos = np.zeros(3)
+        elbow_pos = np.zeros(3)
+        wrist_pos = np.zeros(3)
+
         shoulder_pos_real, _ = self.robot.convert_to_realworld(shoulder_pos)
         elbow_pos_real, _ = self.robot.convert_to_realworld(elbow_pos)
         wrist_pos_real, _ = self.robot.convert_to_realworld(wrist_pos)
@@ -133,9 +144,9 @@ class DressingEnv(AssistiveEnv):
             self.human.target_joint_angles = self.human.get_joint_angles(self.human.controllable_joint_indices)
             self.human.control(self.human.all_joint_indices, self.human.get_joint_angles(), 0.05, 100)
 
-        shoulder_pos = self.human.get_pos_orient(self.human.left_shoulder)[0]
-        elbow_pos = self.human.get_pos_orient(self.human.left_elbow)[0]
-        wrist_pos = self.human.get_pos_orient(self.human.left_wrist)[0]
+        # shoulder_pos = self.human.get_pos_orient(self.human.left_shoulder)[0]
+        # elbow_pos = self.human.get_pos_orient(self.human.left_elbow)[0]
+        # wrist_pos = self.human.get_pos_orient(self.human.left_wrist)[0]
 
         # target_ee_pos = np.array([0.45, -0.45, 1.05])# + self.np_random.uniform(-0.05, 0.05, size=3)
         # target_ee_orient = self.get_quaternion(self.robot.toc_ee_orient_rpy[self.task][0])
@@ -153,7 +164,20 @@ class DressingEnv(AssistiveEnv):
 
 
         # self.cloth_attachment = self.create_sphere(radius=0.02, mass=0, pos=[0.4, -0.35, 1.05], visual=True, collision=False, rgba=[0, 0, 0, 1], maximal_coordinates=False)
-        self.cloth = p.loadSoftBody(os.path.join(self.directory, 'clothing', 'gown_696v.obj'), scale=1.0, mass=0.15, useBendingSprings=1, useMassSpring=1, springElasticStiffness=5, springDampingStiffness=0.01, springDampingAllDirections=1, springBendingStiffness=0, useSelfCollision=1, collisionMargin=0.0001, frictionCoeff=0.1, useFaceContact=1, physicsClientId=self.id)
+        self.cloth = p.loadSoftBody(os.path.join(self.directory, 'clothing', 'gown_696v.obj'), 
+            scale=1.0, 
+            mass=0.15, 
+            useBendingSprings=1, 
+            useMassSpring=1, 
+            springElasticStiffness=5, 
+            springDampingStiffness=0.01, 
+            springDampingAllDirections=1, 
+            springBendingStiffness=0, 
+            useSelfCollision=1, 
+            collisionMargin=0.0001, 
+            frictionCoeff=0.1,
+            useFaceContact=1, 
+            physicsClientId=self.id)
         p.changeVisualShape(self.cloth, -1, rgbaColor=[1, 1, 1, 0.5], flags=0, physicsClientId=self.id)
         p.changeVisualShape(self.cloth, -1, flags=p.VISUAL_SHAPE_DOUBLE_SIDED, physicsClientId=self.id)
         p.setPhysicsEngineParameter(numSubSteps=5, physicsClientId=self.id)

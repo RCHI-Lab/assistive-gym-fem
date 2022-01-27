@@ -100,7 +100,10 @@ class Agent:
     def get_contact_points(self, agentB=None, linkA=None, linkB=None):
         args = dict(bodyA=self.body, physicsClientId=self.id)
         if agentB is not None:
-            args['bodyB'] = agentB.body
+            if not isinstance(agentB, int):
+                args['bodyB'] = agentB.body
+            else:
+                args['bodyB'] = agentB
         if linkA is not None:
             args['linkIndexA'] = linkA
         if linkB is not None:
