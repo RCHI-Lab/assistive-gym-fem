@@ -28,19 +28,11 @@ def store_data_by_name(data_names, data, path):
         hf.create_dataset(data_names[i], data=data[i])
     hf.close()
 
-def load_data_by_name(data_names, path):
-    hf = h5py.File(path, 'r')
-    data = {}
-    for i in range(len(data_names)):
-        d = np.array(hf.get(data_names[i]))
-        data[data_names[i]] = d
-    hf.close()
 
-    return data
 
 def run(args):
     if not osp.exists(args.data_save_path):
-        os.makedir(args.data_save_path, exists_ok=True)
+        os.makedirs(args.data_save_path, exist_ok=True)
 
     env = ClothObjectPandaEnv(render=args.render)
 
@@ -68,7 +60,7 @@ def run(args):
     for t_idx in range(120):
         if t_idx < 40:
             action = np.zeros_like(env.action_space.sample())
-        if t_idx >= 40 and t_idx <= 20 + 40:
+        elif t_idx >= 40 and t_idx < 60:
             # 7 action dim per robot
             # For each robot, first 3 is delta position, second 4 is delat orientation.
             # this stage is pulling the cloht outwards to stretch it
@@ -85,16 +77,16 @@ def run(args):
             rgb, depth = env.get_camera_image_depth(shadow=True)
             rgb = rgb.astype(np.uint8)
             rgb_arrays.append(rgb)
-        zfar = 1000.
-        znear = 0.01
-        depth = (zfar + znear - (2. * depth - 1.) * (zfar - znear))
-        depth = (2. * znear * zfar) / depth
+            zfar = 1000.
+            znear = 0.01
+            depth = (zfar + znear - (2. * depth - 1.) * (zfar - znear))
+            depth = (2. * znear * zfar) / depth
         # print('Runtime: %.2f s, FPS: %.2f' % (time.time() - t, t_idx / (time.time() - t)))
         # cv2.imshow("rgb", rgb)
         # cv2.waitKey()
 
     if args.render:
-        save_numpy_as_gif(np.asarray(rgb_arrays), './tmp-3.gif')
+        save_numpy_as_gif(np.asarray(rgb_arrays), './tmp.gif')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -108,8 +100,8 @@ if __name__ == "__main__":
         """)
     parser.add_argument('--spring_damping_stiffness', type=float, default=0.1, help="cloth spring elastic stiffness parameter. Haven't tuned much to see its effect.")
     parser.add_argument('--spring_bending_stiffness', type=float, default=0, help="cloth spring elastic stiffness parameter. Haven't tuned much to see its effect.")
-    parser.add_argument('--urdf_file_path', type=str, default="dinnerware/sphere.urdf", help="path to a urdf file that represent the object the cloth is pulling downwards to. NOTE: the actual file path is assistive_gym/envs/assets/dinnerware/sphere.urdf")
-    parser.add_argument('--obj_visual_file_path', type=str, default=None, help="Alternatively, you can provide a .obj file that describes the object. E.g., dinnerware/plastic_coffee_cup.obj. NOTE: the actual file path is assistive_gym/envs/assets/dinnerware/plastic_coffee_cup.obj")
+    parser.add_argument('--urdf_file_path', type=str, default="dinnerware/sphere.urdf", help="path to a urdf file that represent the object the cloth is pulling downwards to. NOTE: the actual file path is assistive_gym/envs/assets/dinnerware/sphere.urdf. If you wanna use a new .urdf file, put it in the directory assistive_gym/envs/assets/")
+    parser.add_argument('--obj_visual_file_path', type=str, default=None, help="Alternatively, you can provide a .obj file that describes the object. E.g., dinnerware/plastic_coffee_cup.obj. NOTE: the actual file path is assistive_gym/envs/assets/dinnerware/plastic_coffee_cup.obj. If you wanna use a new .urdf file, put it in the directory assistive_gym/envs/assets/")
     parser.add_argument('--obj_collision_file_path', type=str, default=None, help="For .obj file description of the object, need to provide both a visual file and a collision file. E.g., dinnerware/plastic_coffee_cup_vhacd.obj. NOTE: the actual file path is assistive_gym/envs/assets/dinnerware/plastic_coffee_cup.obj")
     parser.add_argument('--obj_scale', type=list, default=[0.2, 0.2, 0.2], help="the scaling of the .obj file along 3 axis")
     parser.add_argument('--urdf_scale', type=float, default=2, help="the scaling of the .urdf file")
