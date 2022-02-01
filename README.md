@@ -13,7 +13,7 @@ pip install -e .
 ## Collect data
 To run the two panda gripper pulling cloth env, run
 ```bash
-python assistive_gym/run.py 
+python panda_cloth/run.py 
 ``` 
 Please refer to `panda_cloth/run.py ` for the available arguments for changing the cloth parameteres and loading different objects.
 
