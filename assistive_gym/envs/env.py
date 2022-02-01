@@ -19,7 +19,7 @@ from .agents.tool import Tool
 from .agents.furniture import Furniture
 
 class AssistiveEnv(gym.Env):
-    def __init__(self, robot=None, human=None, task='', obs_robot_len=0, obs_human_len=0, time_step=0.02, frame_skip=5, render=False, gravity=-9.81, seed=1001, deformable=False):
+    def __init__(self, robot=None, second_robot=None, human=None, task='', obs_robot_len=0, obs_human_len=0, time_step=0.02, frame_skip=5, render=False, gravity=-9.81, seed=1001, deformable=False):
         self.task = task
         self.time_step = time_step
         self.frame_skip = frame_skip
@@ -33,17 +33,19 @@ class AssistiveEnv(gym.Env):
         self.seed(seeding.create_seed())
         # self.seed(seed)
         if render:
+            print("render here: ")
             self.render()
         else:
+            print("not render here: ")
             self.id = p.connect(p.DIRECT)
             self.util = Util(self.id, self.np_random)
-
+            
         self.directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'assets')
         self.human_creation = HumanCreation(self.id, np_random=self.np_random, cloth=('dressing' in task))
         self.human_limits_model = load_model(os.path.join(self.directory, 'realistic_arm_limits_model.h5'))
         #!! CHANGED FOR BEDDING MANIPULATION TASK!! GO BACK AND CHANGE LATER
         # self.action_robot_len = 4
-        self.action_robot_len = 7
+        self.action_robot_len = 7 if second_robot is None else 14
         self.action_human_len = len(human.controllable_joint_indices) if human is not None and human.controllable else 0
         self.action_space = spaces.Box(low=np.array([-1.0]*(self.action_robot_len+self.action_human_len), dtype=np.float32), high=np.array([1.0]*(self.action_robot_len+self.action_human_len), dtype=np.float32), dtype=np.float32)
         self.obs_robot_len = obs_robot_len
@@ -57,6 +59,7 @@ class AssistiveEnv(gym.Env):
         self.agents = []
         self.plane = Agent()
         self.robot = robot
+        self.second_robot = second_robot
         self.human = human
         self.tool = Tool()
         self.furniture = Furniture()
@@ -133,6 +136,9 @@ class AssistiveEnv(gym.Env):
         if self.robot is not None:
             self.robot.init(self.directory, self.id, self.np_random, fixed_base=not self.robot.mobile)
             self.agents.append(self.robot)
+        if self.second_robot is not None:
+            self.second_robot.init(self.directory, self.id, self.np_random, fixed_base=not self.second_robot.mobile)
+            self.agents.append(self.second_robot)
         # Create human
         if self.human is not None and isinstance(self.human, Human):
             self.human.init(self.human_creation, self.human_limits_model, fixed_human_base, human_impairment, gender, self.config, self.id, self.np_random, mass=mass, body_shape=body_shape)
@@ -148,7 +154,7 @@ class AssistiveEnv(gym.Env):
             self.observation_space.__init__(low=-np.ones(obs_len, dtype=np.float32)*1000000000, high=np.ones(obs_len, dtype=np.float32)*1000000000, dtype=np.float32)
             self.update_action_space()
             # Define action/obs lengths
-            self.action_robot_len = len(self.robot.controllable_joint_indices)
+            self.action_robot_len = len(self.robot.controllable_joint_indices) + len(self.second_robot.controllable_joint_indices)
             self.action_human_len = len(self.human.controllable_joint_indices) if self.human.controllable else 0
             self.obs_robot_len = len(self._get_obs('robot'))
             self.obs_human_len = len(self._get_obs('human'))
@@ -237,6 +243,7 @@ class AssistiveEnv(gym.Env):
                 # pos, orient = np.copy(agent.target_ee_position), np.copy(agent.target_ee_orientation)
                 # print('Reached pos:', pos, 'Reached orient:', orient)
                 # print('Reached pos:', pos, 'Reached orient:', self.get_euler(orient))
+                print(f"robot {i}: action {action}")
                 pos += action[:len(pos)]
                 orient += action[len(pos):]
                 # orient = self.get_quaternion(self.get_euler(orient) + action[len(pos):len(pos)+3]) # NOTE: RPY
@@ -244,7 +251,7 @@ class AssistiveEnv(gym.Env):
                 # print('Target pos:', pos, 'Target orient:', self.get_euler(orient) + action[len(pos):len(pos)+3])
                 agent_joint_angles = agent.ik(joint, pos, orient, ik_indices, max_iterations=200, use_current_as_rest=True)
             if isinstance(agent, Robot) and agent.action_duplication is not None:
-                agent_joint_angles = np.concatenate([[a]*d for a, d in zip(agent_joint_angles, self.robot.action_duplication)])
+                agent_joint_angles = np.concatenate([[a]*d for a, d in zip(agent_joint_angles, agent.action_duplication)])
                 agent.control(agent.all_controllable_joints, agent_joint_angles, agent.gains, agent.forces)
             else:
                 agent.control(agent.controllable_joint_indices, agent_joint_angles, gains[i], forces[i])

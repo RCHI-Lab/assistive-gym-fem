@@ -114,3 +114,9 @@ register(
     entry_point='assistive_gym.envs:SimpleTestEnv',
     max_episode_steps=200,
 )
+
+register(
+    id='ClothObjectPandaEnv-v1',
+    entry_point='assistive_gym.envs:ClothObjectPandaEnv',
+    max_episode_steps=1000,
+)

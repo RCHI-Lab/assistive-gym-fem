@@ -151,6 +151,9 @@ class SimpleTestEnv(AssistiveEnv):
 
         self.sphere = Furniture()
         self.sphere.init('large_sphere', self.directory, self.id, self.np_random)
+        # TODO: the above furniture thing might be able to be simplified to just the following two lines.
+        # sphere_pos = np.array([0.1, -0.5, 0.825]) # + np.array([np_random.uniform(-0.05, 0.05), np_random.uniform(-0.05, 0.05), 0])
+        # furniture = p.loadURDF(os.path.join(directory, 'dinnerware', 'sphere.urdf'), basePosition=sphere_pos, baseOrientation=[0, 0, 0, 1], physicsClientId=id)
 
         # Enable rendering
         p.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1, physicsClientId=self.id)

@@ -144,17 +144,6 @@ class DressingEnv(AssistiveEnv):
             self.human.target_joint_angles = self.human.get_joint_angles(self.human.controllable_joint_indices)
             self.human.control(self.human.all_joint_indices, self.human.get_joint_angles(), 0.05, 100)
 
-        # shoulder_pos = self.human.get_pos_orient(self.human.left_shoulder)[0]
-        # elbow_pos = self.human.get_pos_orient(self.human.left_elbow)[0]
-        # wrist_pos = self.human.get_pos_orient(self.human.left_wrist)[0]
-
-        # target_ee_pos = np.array([0.45, -0.45, 1.05])# + self.np_random.uniform(-0.05, 0.05, size=3)
-        # target_ee_orient = self.get_quaternion(self.robot.toc_ee_orient_rpy[self.task][0])
-        # target_ee_orient_shoulder = self.get_quaternion(self.robot.toc_ee_orient_rpy[self.task][-1])
-        # offset = np.array([0, 0, 0.1])
-        # self.init_robot_pose(target_ee_pos, target_ee_orient, [(target_ee_pos, target_ee_orient)], [(shoulder_pos+offset, target_ee_orient_shoulder), (elbow_pos+offset, target_ee_orient), (wrist_pos+offset, target_ee_orient)], arm='left', tools=[], collision_objects=[self.human, self.furniture], right_side=False)
-        # print(self.robot.get_base_pos_orient())
-        # print(self.robot.get_joint_angles(self.robot.controllable_joint_indices))
         base_pos = [0.87448014, 0.40101663, 0]
         base_orient = [0, 0, 0.99178843, -0.12788948]
         joint_angles = [1.14317203, 0.18115511, 1.36771027, -0.77079951, 0.28547459, -0.6480673, -1.58786233]
