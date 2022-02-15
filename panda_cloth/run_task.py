@@ -7,6 +7,7 @@ import cv2
 from assistive_gym.envs.panda_cloth_env import ClothObjectPandaEnv
 import os.path as osp
 import h5py
+from matplotlib import pyplot as plt
 
 def save_numpy_as_gif(array, filename, fps=20, scale=1.0):
     # ensure that the file has the .gif extension
@@ -34,7 +35,7 @@ def run(args):
     if not osp.exists(args.data_save_path):
         os.makedirs(args.data_save_path, exist_ok=True)
 
-    env = ClothObjectPandaEnv(render=args.render)
+    env = ClothObjectPandaEnv(render=args.render, delta_action=True)
 
     rgb_arrays = []
     if args.render:
@@ -51,28 +52,46 @@ def run(args):
         obj_scale=args.obj_scale,
         urdf_scale=args.urdf_scale,
         cloth_obj_file_path=args.cloth_obj_file_path,
+        robot_init_x=0.8,
+        delta_x=0.7,
     )
     
     save_data_names = ['cloth_vertices', 'first_torque_force', 'second_torque_force', 
         'first_eef_pos', 'first_eef_orient', 'second_eef_pos', 'second_eef_orient']
 
     t = time.time()
-    for t_idx in range(120):
+    joint = env.robot.right_end_effector if 'right' in env.robot.controllable_joints else env.robot.left_end_effector
+    left_pos, left_orient = env.robot.get_pos_orient(joint)
+    right_pos, right_orient = env.second_robot.get_pos_orient(joint)
+    left_orients = []
+    right_orients = []
+    cloth_distance = []
+    for t_idx in range(250):
         if t_idx < 40:
             action = np.zeros_like(env.action_space.sample())
-        elif t_idx >= 40 and t_idx < 60:
+            # action[3:7] = left_orient
+            # action[-4:] = right_orient
+        elif t_idx >= 40 and t_idx < 80:
             # 7 action dim per robot
             # For each robot, first 3 is delta position, second 4 is delat orientation.
             # this stage is pulling the cloht outwards to stretch it
-            action = np.array([0.2, 0, 0, 0, 0, 0, 0, -0.2, 0, 0, 0, 0, 0, 0])
+            # action = np.array([0.1, 0, 0, *left_orient, -0.1, 0, 0, *right_orient])
+            action = np.array([0.1, 0, 0, 0, 0, 0, 0, -0.1, 0, 0, 0, 0, 0, 0])
         else:
             # this stage is pulling the cloth downwards towards the object
-            action = np.array([0, 0, -0.2, 0, 0, 0, 0, 0, 0, -0.2, 0, 0, 0, 0])
-            
+            action = np.array([0, 0, -0.1, 0, 0, 0, 0, 0, 0, -0.1, 0, 0, 0, 0])
+    
+        pos, orient = env.robot.get_pos_orient(joint)
+        left_orients.append(orient)
+        pos, orient = env.second_robot.get_pos_orient(joint)
+        right_orients.append(orient)
+
         observation, _, _, _ = env.step(action)
         save_name = "data_{:06}".format(t_idx)
         store_data_by_name(save_data_names, observation, osp.join(args.data_save_path, save_name))
-        
+        mesh_points = observation[0]
+        cloth_distance.append(np.abs(mesh_points[-1][0] - mesh_points[0][0]))
+
         if args.render:
             rgb, depth = env.get_camera_image_depth(shadow=True)
             rgb = rgb.astype(np.uint8)
@@ -86,12 +105,33 @@ def run(args):
         # cv2.waitKey()
 
     if args.render:
-        save_numpy_as_gif(np.asarray(rgb_arrays), './tmp.gif')
+        save_numpy_as_gif(np.asarray(rgb_arrays), './task.gif')
+
+    ### This plots the orientation of the grippers
+    # left_orients = np.array(left_orients)
+    # right_orients = np.array(right_orients)
+    # fig, axes = plt.subplots(1, 5, figsize=(24, 4))
+    # axes = axes.reshape(-1)
+    # x_axis = [i * 0.1 * 0.05 for i in range(len(left_orients))]
+    # for i in range(4):
+    #     ax = axes[i]
+    #     ax.plot(x_axis, left_orients[:, i], label='left_orient[{}]'.format(i))
+    #     ax.plot(x_axis, right_orients[:, i], label='right_orient[{}]'.format(i))
+    #     ax.set_xlabel('pulling distance')
+    #     if i == 0:
+    #         ax.set_ylabel("quaternion")
+    #     ax.legend()
+
+    # axes[4].plot(x_axis, cloth_distance)
+    # axes[4].set_ylabel("real increased cloth distance")
+
+    # plt.savefig("task.png")
+    # plt.show()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--render', type=int, default=0, help="If True, will open a gui for rendering and dump gifs.")
+    parser.add_argument('--render', type=int, default=1, help="If True, will open a gui for rendering and dump gifs.")
     parser.add_argument('--data_save_path', type=str, default='./data/store', help="path to store the data.")
     
     parser.add_argument('--spring_elastic_stiffness', type=float, default=40, help="""

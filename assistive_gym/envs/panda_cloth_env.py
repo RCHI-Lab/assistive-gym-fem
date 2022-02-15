@@ -9,13 +9,14 @@ from .agents import furniture
 from .agents.furniture import Furniture
 
 class ClothObjectEnv(AssistiveEnv):
-    def __init__(self, robot, second_robot, human=None, use_ik=True, *args, **kwargs):
+    def __init__(self, robot, second_robot, human=None, use_ik=True, delta_action=False, *args, **kwargs):
         
         assert human is None, "No human is needed!"
         time_step = 0.02
         super(ClothObjectEnv, self).__init__(robot=robot, second_robot=second_robot, human=None, task='dressing', 
             frame_skip=5, time_step=time_step, deformable=True, *args, **kwargs)
 
+        self.delta_action = delta_action
         self.use_ik = use_ik
         self.use_mesh = (human is None)
         hz=int(1/time_step)
@@ -23,7 +24,7 @@ class ClothObjectEnv(AssistiveEnv):
 
     def step(self, action):
         if self.use_ik:
-            self.take_step(action, action_multiplier=0.05, ik=True)
+            self.take_step(action, action_multiplier=0.05, ik=True, delta_action=self.delta_action)
         else:
             self.take_step(action, action_multiplier=0.003)
 
@@ -57,7 +58,9 @@ class ClothObjectEnv(AssistiveEnv):
         obj_scale=[0.2, 0.2, 0.2],
         urdf_file_path='dinnerware/sphere.urdf',
         urdf_scale=2,
-        cloth_obj_file_path='clothing/bl_cloth_25_cuts.obj'
+        cloth_obj_file_path='clothing/bl_cloth_25_cuts.obj',
+        robot_init_x=1.0,
+        delta_x=0.9,
     ):
         """
         If using .obj file for the object, a visual file and a collision file needs to be passed in.
@@ -74,30 +77,33 @@ class ClothObjectEnv(AssistiveEnv):
 
         # Set robot base position & orientation, and joint angles
         # first set a random joint angle
-        base_pos = [0.7, 0.40101663, 0]
+        base_pos = [robot_init_x, 0.40101663, 0]
         base_orient = [0, 0, 1, 0]
         joint_angles = [0,  -np.pi/2,  0.0, -np.pi/2*1.5,  0, np.pi/2,  np.pi/2]
+        # joint_angles = [0.5442778529651637, -0.3918180933114202, -0.644055285663591, -2.2240036563286165, 1.3288237952921125,
+        #  1.606063438897899, 0.5011664036929228]
         self.robot.reset_joints()
         self.robot.set_base_pos_orient(base_pos, base_orient)
         self.robot.set_joint_angles(self.robot.controllable_joint_indices, joint_angles)
 
-        base_pos = [-0.7, 0.40101663, 0]
+        base_pos = [-robot_init_x, 0.40101663, 0]
         base_orient = [0, 0, 0, 1]
         joint_angles = [0,  -np.pi/2,  0.0, -np.pi/2*1.5,  0, np.pi/2,  np.pi/2]
+        # joint_angles = [-0.2026565741948859, -0.3515336915241687, -0.3045408560727772, -2.180325759285375, -1.793592956690806,
+        #  2.010203608140892, 1.0840929914664361]
 
         self.second_robot.reset_joints()
         self.second_robot.set_base_pos_orient(base_pos, base_orient)
         self.second_robot.set_joint_angles(self.second_robot.controllable_joint_indices, joint_angles)
 
         # use IK to adjust the joint angle to find a more feasiable initial configuration
-        delta_poses = [[-0.4, 0, 0.4], [0.4, 0, 0.4]]
+        delta_poses = [[-delta_x, 0, 0.4], [delta_x, 0, 0.4]]
         for robot, delta_pos  in zip([self.robot, self.second_robot], delta_poses):
             joint = robot.right_end_effector if 'right' in robot.controllable_joints else robot.left_end_effector
             ik_indices = robot.right_arm_ik_indices if 'right' in robot.controllable_joints else robot.left_arm_ik_indices
             pos, orient = robot.get_pos_orient(joint)
             pos += delta_pos
             robot_joint_angles = robot.ik(joint, pos, orient, ik_indices, max_iterations=200, use_current_as_rest=True)
-            robot.set_joint_angles(robot.controllable_joint_indices, joint_angles)
             robot.set_joint_angles(robot.controllable_joint_indices, robot_joint_angles)
 
 
@@ -117,7 +123,8 @@ class ClothObjectEnv(AssistiveEnv):
             collisionMargin=0.0001, 
             frictionCoeff=1.0, 
             useFaceContact=1, 
-            physicsClientId=self.id)
+            physicsClientId=self.id,
+        )
 
         # Set cloth visual apperances
         p.changeVisualShape(self.cloth, -1, rgbaColor=[1, 1, 1, 0.5], flags=0, physicsClientId=self.id)
@@ -177,11 +184,18 @@ class ClothObjectEnv(AssistiveEnv):
         self.robot.set_gravity(0, 0, 0)
         self.second_robot.set_gravity(0, 0, 0)
 
+        if urdf_file_path == 'None':
+            urdf_file_path = None
+        if obj_visual_file_path == 'None':
+            obj_visual = None
+        if obj_collision_file_path == 'None':
+            obj_collision_file_path = None
+            
         # load a sphere into the scene using urdf files:
         if urdf_file_path is not None:
             robot_base_pos, _ = self.robot.get_base_pos_orient()
             second_robot_base_pos, _ = self.second_robot.get_base_pos_orient()
-            sphere_pos = (robot_base_pos + second_robot_base_pos) / 2 + np.array([0, 0, 0.6]) 
+            sphere_pos = (robot_base_pos + second_robot_base_pos) / 2 + np.array([0, 0, 0.45]) 
             furniture = p.loadURDF(os.path.join(self.directory, urdf_file_path), 
                     basePosition=sphere_pos, baseOrientation=[0, 0, 0, 1], physicsClientId=self.id, useFixedBase=1, globalScaling=urdf_scale)
 

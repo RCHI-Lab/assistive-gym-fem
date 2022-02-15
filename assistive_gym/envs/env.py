@@ -186,7 +186,7 @@ class AssistiveEnv(gym.Env):
         self.update_action_space()
         return self.robot
 
-    def take_step(self, actions, gains=None, forces=None, action_multiplier=0.05, step_sim=True, ik=False):
+    def take_step(self, actions, gains=None, forces=None, action_multiplier=0.05, step_sim=True, ik=False, delta_action=True):
         if gains is None:
             gains = [a.motor_gains for a in self.agents]
         elif type(gains) not in (list, tuple):
@@ -245,7 +245,11 @@ class AssistiveEnv(gym.Env):
                 # print('Reached pos:', pos, 'Reached orient:', self.get_euler(orient))
                 print(f"robot {i}: action {action}")
                 pos += action[:len(pos)]
-                orient += action[len(pos):]
+                if delta_action:
+                    orient += action[len(pos):]
+                else:
+                    orient = action[len(pos):]
+                # print("current orient: ", orient)
                 # orient = self.get_quaternion(self.get_euler(orient) + action[len(pos):len(pos)+3]) # NOTE: RPY
                 # print('Target pos:', pos, 'Target orient:', orient)
                 # print('Target pos:', pos, 'Target orient:', self.get_euler(orient) + action[len(pos):len(pos)+3])

@@ -11,15 +11,19 @@ pip install -e .
 ```
 
 ## Collect data
-To run the two panda gripper pulling cloth env, run
+To run the two panda gripper pure stretching outwards, run
 ```bash
-python assistive_gym/run.py 
+python panda_cloth/run_context.py --urdf_file_path None
 ``` 
-Please refer to `panda_cloth/run.py ` for the available arguments for changing the cloth parameteres and loading different objects.
+To run the two panda gripper stretching and then pulling downwards, run
+ ```bash
+python panda_cloth/run_task.py 
+``` 
+Please refer to `panda_cloth/run_context.py` and ``panda_cloth/run_task.py`` for the available arguments for changing the cloth parameteres and loading different objects.
 
 The main file that implements the simulation environment is `assistive_gym/envs/panda_cloth_env.py`.
 Please refer to the comments in that file to see how the simulation environment is built.
 
-Data will be automatically stored as a trajectory of h5py file when running `panda_cloth/run.py`. The stored location is determined by the argument `data_save_path`.
+Data will be automatically stored as a trajectory of h5py file when running `panda_cloth/run_context.py` or `panda_cloth/run_task.py`. The stored location is determined by the argument `data_save_path`.
 
 `panda_cloth/plot.py` can be used to visualize the collected cloth vertex trajectory and force-torque readings. 

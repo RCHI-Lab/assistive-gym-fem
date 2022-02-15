@@ -47,4 +47,5 @@ second_torque_ax.plot(range(len(second_torque_y)), second_torque_y)
 second_torque_ax.set_title("second robot's torque along y axis")
 
 plt.tight_layout()
+plt.savefig("tmp.png")
 plt.show()
