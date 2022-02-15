@@ -80,8 +80,6 @@ class ClothObjectEnv(AssistiveEnv):
         base_pos = [robot_init_x, 0.40101663, 0]
         base_orient = [0, 0, 1, 0]
         joint_angles = [0,  -np.pi/2,  0.0, -np.pi/2*1.5,  0, np.pi/2,  np.pi/2]
-        # joint_angles = [0.5442778529651637, -0.3918180933114202, -0.644055285663591, -2.2240036563286165, 1.3288237952921125,
-        #  1.606063438897899, 0.5011664036929228]
         self.robot.reset_joints()
         self.robot.set_base_pos_orient(base_pos, base_orient)
         self.robot.set_joint_angles(self.robot.controllable_joint_indices, joint_angles)
@@ -89,8 +87,6 @@ class ClothObjectEnv(AssistiveEnv):
         base_pos = [-robot_init_x, 0.40101663, 0]
         base_orient = [0, 0, 0, 1]
         joint_angles = [0,  -np.pi/2,  0.0, -np.pi/2*1.5,  0, np.pi/2,  np.pi/2]
-        # joint_angles = [-0.2026565741948859, -0.3515336915241687, -0.3045408560727772, -2.180325759285375, -1.793592956690806,
-        #  2.010203608140892, 1.0840929914664361]
 
         self.second_robot.reset_joints()
         self.second_robot.set_base_pos_orient(base_pos, base_orient)
